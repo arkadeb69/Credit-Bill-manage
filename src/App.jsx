@@ -1,20 +1,4 @@
-import React, { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { 
-  LayoutDashboard, 
-  PlusCircle, 
-  History, 
-  CreditCard, 
-  Trash2, 
-  ChevronRight, 
-  AlertCircle,
-  CheckCircle2,
-  Calendar,
-  IndianRupee,
-  Smartphone,
-  Info,
-  X
-} from "lucide-react";
+import { useState, useEffect } from "react";
 
 const PAYMENT_APPS = ["CRED", "Paytm", "PhonePe", "Bank App", "Other"];
 
@@ -31,7 +15,6 @@ const SAMPLE_PAYMENTS = [
   { id: 2, cardId: 3, amount: 3000, date: "2025-05-11", app: "PhonePe", notes: "Partial payment" },
 ];
 
-// Helper functions (preserved from user request)
 function loadFromStorage(key, fallback) {
   try {
     const val = localStorage.getItem(key);
@@ -70,6 +53,12 @@ function getCardPaid(card, payments) {
   return payments.filter(p => p.cardId === card.id).reduce((s, p) => s + Number(p.amount), 0);
 }
 
+const STATUS_STYLES = {
+  paid:    { bg: "#e8f8f0", border: "#27ae60", text: "#155724", label: "✓ Paid", dot: "#27ae60" },
+  pending: { bg: "#fff0f0", border: "#e53935", text: "#7f0000", label: "⚠ Pending", dot: "#e53935" },
+  partial: { bg: "#fffbe6", border: "#f9a825", text: "#5f3c00", label: "◑ Partial", dot: "#f9a825" },
+};
+
 export default function App() {
   const [cards, setCards] = useState(() => loadFromStorage("cc_cards", INITIAL_CARDS));
   const [payments, setPayments] = useState(() => loadFromStorage("cc_payments", SAMPLE_PAYMENTS));
@@ -104,8 +93,7 @@ export default function App() {
     const updated = { ...form, [field]: val };
     setForm(updated);
     if (field === "cardId" && val) {
-      const card = cards.find(c => c.id === Number(val));
-      const alreadyPaid = card && getCardStatus(card, payments) === "paid";
+      const alreadyPaid = payments.some(p => p.cardId === Number(val) && getCardStatus(cards.find(c=>c.id===Number(val)), payments) === "paid");
       setDupWarning(alreadyPaid);
     }
   }
@@ -164,508 +152,298 @@ export default function App() {
   }
 
   const navItems = [
-    { key: "dashboard", label: "Home", icon: LayoutDashboard },
-    { key: "add", label: "Pay", icon: PlusCircle },
-    { key: "history", label: "History", icon: History },
-    { key: "cards", label: "Cards", icon: CreditCard },
+    { key: "dashboard", label: "🏠 Home" },
+    { key: "add", label: "➕ Add Payment" },
+    { key: "history", label: "📋 History" },
+    { key: "cards", label: "💳 My Cards" },
   ];
 
   return (
-    <div className="max-w-2xl mx-auto px-4 pb-32 pt-8">
+    <div style={{ fontFamily: "'Georgia', 'Times New Roman', serif", background: "#f5f0e8", minHeight: "100vh", paddingBottom: 80 }}>
       {/* Header */}
-      <header className="mb-8">
-        <motion.div 
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col gap-1"
-        >
-          <span className="text-xs font-bold tracking-widest text-primary uppercase">Bill Tracker</span>
-          <h1 className="text-3xl font-bold gradient-text">My Credit Bills</h1>
-          <p className="text-sm text-text-muted">Manage your finances with elegance.</p>
-        </motion.div>
-      </header>
+      <div style={{ background: "#2c5f8a", padding: "20px 24px 16px", color: "white" }}>
+        <div style={{ fontSize: 11, letterSpacing: 2, opacity: 0.7, textTransform: "uppercase", marginBottom: 4 }}>Bill Tracker</div>
+        <div style={{ fontSize: 26, fontWeight: "bold" }}>My Credit Card Bills</div>
+        <div style={{ fontSize: 14, opacity: 0.75, marginTop: 2 }}>Simple. Clear. Reliable.</div>
+      </div>
 
       {/* Reminder Banner */}
-      <AnimatePresence>
-        {(pendingCards.length > 0 || upcomingCards.length > 0) && (
-          <motion.div 
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            className="mb-8 overflow-hidden"
-          >
-            <div className="glass-card p-4 border-warning/20 bg-warning/5">
-              {pendingCards.length > 0 && (
-                <div className="flex items-center gap-3 text-warning font-semibold mb-2">
-                  <AlertCircle size={20} />
-                  <span>{pendingCards.length} card{pendingCards.length > 1 ? "s" : ""} pending payment</span>
-                </div>
-              )}
-              {upcomingCards.map(c => {
-                const d = daysUntil(c.dueDate);
-                return (
-                  <div key={c.id} className="flex items-center gap-3 text-danger/80 text-sm pl-8">
-                    <div className="w-1.5 h-1.5 rounded-full bg-danger animate-pulse" />
-                    <span><strong>{c.name}</strong> due {d === 0 ? "today!" : d === 1 ? "tomorrow!" : `in ${d} days`}</span>
-                  </div>
-                );
-              })}
+      {(pendingCards.length > 0 || upcomingCards.length > 0) && (
+        <div style={{ background: "#fff3cd", borderBottom: "2px solid #f9a825", padding: "12px 20px" }}>
+          {pendingCards.length > 0 && (
+            <div style={{ fontSize: 17, color: "#5f3c00", fontWeight: "bold", marginBottom: upcomingCards.length > 0 ? 6 : 0 }}>
+              ⚠️ {pendingCards.length} card{pendingCards.length > 1 ? "s" : ""} still need payment
             </div>
-          </motion.div>
+          )}
+          {upcomingCards.map(c => {
+            const d = daysUntil(c.dueDate);
+            return (
+              <div key={c.id} style={{ fontSize: 15, color: "#7f0000" }}>
+                🔔 <strong>{c.name}</strong> due {d === 0 ? "TODAY!" : d === 1 ? "tomorrow!" : `in ${d} days`}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Content */}
+      <div style={{ padding: "20px 16px", maxWidth: 600, margin: "0 auto" }}>
+
+        {/* DASHBOARD */}
+        {page === "dashboard" && (
+          <div>
+            <div style={{ fontSize: 22, fontWeight: "bold", color: "#2c3e50", marginBottom: 16 }}>All Cards Overview</div>
+            {cards.map(card => {
+              const status = getCardStatus(card, payments);
+              const paid = getCardPaid(card, payments);
+              const remaining = Math.max(0, card.totalBill - paid);
+              const s = STATUS_STYLES[status];
+              const lastPay = payments.filter(p => p.cardId === card.id).sort((a,b) => b.date.localeCompare(a.date))[0];
+              const days = daysUntil(card.dueDate);
+
+              return (
+                <div key={card.id} style={{
+                  background: "white",
+                  borderRadius: 16,
+                  border: `2px solid ${s.border}`,
+                  marginBottom: 16,
+                  overflow: "hidden",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.06)"
+                }}>
+                  <div style={{ background: s.bg, padding: "14px 18px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+                    <div>
+                      <div style={{ fontSize: 20, fontWeight: "bold", color: "#1a2a3a" }}>💳 {card.name}</div>
+                      <div style={{ fontSize: 14, color: "#555", marginTop: 2 }}>Due: {formatDate(card.dueDate)}
+                        {days >= 0 && days <= 5 && status !== "paid" && (
+                          <span style={{ marginLeft: 8, color: days <= 1 ? "#e53935" : "#f9a825", fontWeight: "bold" }}>
+                            ({days === 0 ? "Today!" : days === 1 ? "Tomorrow!" : `${days} days`})
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div style={{ background: s.border, color: "white", borderRadius: 20, padding: "6px 16px", fontSize: 15, fontWeight: "bold" }}>
+                      {s.label}
+                    </div>
+                  </div>
+                  <div style={{ padding: "14px 18px" }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 10 }}>
+                      <div style={{ textAlign: "center" }}>
+                        <div style={{ fontSize: 12, color: "#888", marginBottom: 3 }}>Total Bill</div>
+                        <div style={{ fontSize: 18, fontWeight: "bold", color: "#2c3e50" }}>{formatINR(card.totalBill)}</div>
+                      </div>
+                      <div style={{ textAlign: "center", borderLeft: "1px solid #eee", borderRight: "1px solid #eee" }}>
+                        <div style={{ fontSize: 12, color: "#888", marginBottom: 3 }}>Paid</div>
+                        <div style={{ fontSize: 18, fontWeight: "bold", color: "#27ae60" }}>{formatINR(paid)}</div>
+                      </div>
+                      <div style={{ textAlign: "center" }}>
+                        <div style={{ fontSize: 12, color: "#888", marginBottom: 3 }}>Remaining</div>
+                        <div style={{ fontSize: 18, fontWeight: "bold", color: remaining > 0 ? "#e53935" : "#27ae60" }}>{formatINR(remaining)}</div>
+                      </div>
+                    </div>
+                    {lastPay && (
+                      <div style={{ background: "#f0f8ff", borderRadius: 8, padding: "8px 12px", fontSize: 14, color: "#2c5f8a" }}>
+                        Last payment: {formatINR(lastPay.amount)} via {lastPay.app} on {formatDate(lastPay.date)}
+                      </div>
+                    )}
+                    <button onClick={() => { setForm(f => ({...f, cardId: String(card.id)})); setPage("add"); }}
+                      style={{ marginTop: 12, width: "100%", padding: "12px", background: "#2c5f8a", color: "white", border: "none", borderRadius: 10, fontSize: 16, fontWeight: "bold", cursor: "pointer" }}>
+                      + Add Payment for this Card
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         )}
-      </AnimatePresence>
 
-      <main>
-        <AnimatePresence mode="wait">
-          {/* DASHBOARD */}
-          {page === "dashboard" && (
-            <motion.div 
-              key="dashboard"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              className="space-y-4"
-            >
-              <h2 className="text-xl font-bold mb-4">Cards Overview</h2>
-              {cards.map(card => {
-                const status = getCardStatus(card, payments);
-                const paid = getCardPaid(card, payments);
-                const remaining = Math.max(0, card.totalBill - paid);
-                const progress = (paid / card.totalBill) * 100;
-                const days = daysUntil(card.dueDate);
-                const lastPay = payments.filter(p => p.cardId === card.id).sort((a,b) => b.date.localeCompare(a.date))[0];
+        {/* ADD PAYMENT */}
+        {page === "add" && (
+          <div>
+            <div style={{ fontSize: 22, fontWeight: "bold", color: "#2c3e50", marginBottom: 20 }}>Add a Payment</div>
 
+            {dupWarning && (
+              <div style={{ background: "#fff3cd", border: "2px solid #f9a825", borderRadius: 12, padding: 16, marginBottom: 16, fontSize: 16, color: "#5f3c00" }}>
+                ⚠️ <strong>This card may already be paid.</strong><br />Please check before paying again.
+              </div>
+            )}
+
+            <div style={{ background: "white", borderRadius: 16, padding: 20, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+              <label style={{ display: "block", fontSize: 16, fontWeight: "bold", color: "#2c3e50", marginBottom: 6 }}>Select Credit Card</label>
+              <select value={form.cardId} onChange={e => handleFormChange("cardId", e.target.value)}
+                style={{ width: "100%", padding: "14px 12px", fontSize: 17, borderRadius: 10, border: "2px solid #ccc", marginBottom: 18, background: "white" }}>
+                <option value="">-- Choose a card --</option>
+                {cards.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+
+              <label style={{ display: "block", fontSize: 16, fontWeight: "bold", color: "#2c3e50", marginBottom: 6 }}>Amount Paid (₹)</label>
+              <input type="number" value={form.amount} onChange={e => handleFormChange("amount", e.target.value)}
+                placeholder="Enter amount"
+                style={{ width: "100%", padding: "14px 12px", fontSize: 19, borderRadius: 10, border: "2px solid #ccc", marginBottom: 18, boxSizing: "border-box" }} />
+
+              <label style={{ display: "block", fontSize: 16, fontWeight: "bold", color: "#2c3e50", marginBottom: 6 }}>Payment App Used</label>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 18 }}>
+                {PAYMENT_APPS.map(app => (
+                  <button key={app} onClick={() => handleFormChange("app", app)}
+                    style={{ padding: "10px 18px", fontSize: 16, borderRadius: 24, border: `2px solid ${form.app === app ? "#2c5f8a" : "#ccc"}`,
+                      background: form.app === app ? "#2c5f8a" : "white", color: form.app === app ? "white" : "#444", cursor: "pointer", fontWeight: form.app === app ? "bold" : "normal" }}>
+                    {app}
+                  </button>
+                ))}
+              </div>
+
+              <label style={{ display: "block", fontSize: 16, fontWeight: "bold", color: "#2c3e50", marginBottom: 6 }}>Payment Date</label>
+              <input type="date" value={form.date} onChange={e => handleFormChange("date", e.target.value)}
+                style={{ width: "100%", padding: "14px 12px", fontSize: 17, borderRadius: 10, border: "2px solid #ccc", marginBottom: 18, boxSizing: "border-box" }} />
+
+              <label style={{ display: "block", fontSize: 16, fontWeight: "bold", color: "#2c3e50", marginBottom: 6 }}>Notes (optional)</label>
+              <input type="text" value={form.notes} onChange={e => handleFormChange("notes", e.target.value)}
+                placeholder="e.g. Full payment, EMI, etc."
+                style={{ width: "100%", padding: "14px 12px", fontSize: 16, borderRadius: 10, border: "2px solid #ccc", marginBottom: 18, boxSizing: "border-box" }} />
+
+              {formError && <div style={{ color: "#e53935", fontSize: 16, marginBottom: 12, fontWeight: "bold" }}>⚠ {formError}</div>}
+
+              <button onClick={handleAddPayment}
+                style={{ width: "100%", padding: 16, background: "#27ae60", color: "white", border: "none", borderRadius: 12, fontSize: 20, fontWeight: "bold", cursor: "pointer", marginBottom: 10 }}>
+                ✓ Save Payment
+              </button>
+              <button onClick={() => setPage("dashboard")}
+                style={{ width: "100%", padding: 14, background: "#f5f0e8", color: "#555", border: "2px solid #ccc", borderRadius: 12, fontSize: 16, cursor: "pointer" }}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* HISTORY */}
+        {page === "history" && (
+          <div>
+            <div style={{ fontSize: 22, fontWeight: "bold", color: "#2c3e50", marginBottom: 16 }}>Payment History</div>
+            {payments.length === 0 ? (
+              <div style={{ textAlign: "center", color: "#888", fontSize: 18, marginTop: 40 }}>No payments recorded yet.</div>
+            ) : (
+              [...payments].sort((a,b) => b.date.localeCompare(a.date)).map(p => {
+                const card = cards.find(c => c.id === p.cardId);
                 return (
-                  <div key={card.id} className="glass-card overflow-hidden group">
-                    <div className="p-6">
-                      <div className="flex justify-between items-start mb-6">
-                        <div>
-                          <h3 className="text-xl font-bold flex items-center gap-2">
-                            <CreditCard className="text-primary" size={20} />
-                            {card.name}
-                          </h3>
-                          <p className="text-sm text-text-muted mt-1 flex items-center gap-1">
-                            <Calendar size={14} />
-                            Due: {formatDate(card.dueDate)}
-                            {days >= 0 && days <= 5 && status !== "paid" && (
-                              <span className={`ml-2 font-bold ${days <= 1 ? "text-danger" : "text-warning"}`}>
-                                ({days === 0 ? "Today" : days === 1 ? "Tomorrow" : `${days} days`})
-                              </span>
-                            )}
-                          </p>
-                        </div>
-                        <div className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
-                          status === 'paid' ? 'bg-success/20 text-success' : 
-                          status === 'partial' ? 'bg-warning/20 text-warning' : 'bg-danger/20 text-danger'
-                        }`}>
-                          {status}
-                        </div>
+                  <div key={p.id} style={{ background: "white", borderRadius: 14, padding: 16, marginBottom: 14, boxShadow: "0 2px 6px rgba(0,0,0,0.06)", borderLeft: "5px solid #2c5f8a" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                      <div>
+                        <div style={{ fontSize: 18, fontWeight: "bold", color: "#1a2a3a" }}>💳 {card ? card.name : "Unknown Card"}</div>
+                        <div style={{ fontSize: 22, fontWeight: "bold", color: "#27ae60", marginTop: 4 }}>{formatINR(p.amount)}</div>
+                        <div style={{ fontSize: 15, color: "#555", marginTop: 4 }}>📅 {formatDate(p.date)} &nbsp;|&nbsp; 📱 {p.app}</div>
+                        {p.notes && <div style={{ fontSize: 14, color: "#888", marginTop: 4 }}>📝 {p.notes}</div>}
                       </div>
-
-                      <div className="grid grid-cols-3 gap-4 mb-6">
-                        <div>
-                          <p className="text-[10px] uppercase tracking-widest text-text-muted mb-1">Total</p>
-                          <p className="font-bold">{formatINR(card.totalBill)}</p>
-                        </div>
-                        <div className="text-center">
-                          <p className="text-[10px] uppercase tracking-widest text-text-muted mb-1">Paid</p>
-                          <p className="font-bold text-success">{formatINR(paid)}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-[10px] uppercase tracking-widest text-text-muted mb-1">Left</p>
-                          <p className={`font-bold ${remaining > 0 ? "text-danger" : "text-success"}`}>{formatINR(remaining)}</p>
-                        </div>
-                      </div>
-
-                      <div className="relative h-2 w-full bg-white/5 rounded-full overflow-hidden mb-6">
-                        <motion.div 
-                          initial={{ width: 0 }}
-                          animate={{ width: `${Math.min(100, progress)}%` }}
-                          className={`absolute top-0 left-0 h-full rounded-full ${
-                            status === 'paid' ? 'bg-success' : 'bg-primary'
-                          }`}
-                        />
-                      </div>
-
-                      {lastPay && (
-                        <div className="bg-white/5 rounded-xl p-3 text-xs text-text-muted flex items-center gap-3 mb-4">
-                          <Info size={14} className="text-primary" />
-                          <span>Last: {formatINR(lastPay.amount)} via {lastPay.app} on {formatDate(lastPay.date)}</span>
-                        </div>
-                      )}
-
-                      <button 
-                        onClick={() => { setForm(f => ({...f, cardId: String(card.id)})); setPage("add"); }}
-                        className="w-100 flex items-center justify-center gap-2 p-3 bg-white/5 hover:bg-white/10 rounded-xl font-bold transition-all border border-white/5"
-                        style={{ width: '100%' }}
-                      >
-                        <PlusCircle size={18} />
-                        Add Payment
+                      <button onClick={() => handleDeletePayment(p.id)}
+                        style={{ background: "#fff0f0", border: "1px solid #ffcdd2", color: "#e53935", borderRadius: 8, padding: "6px 14px", fontSize: 14, cursor: "pointer" }}>
+                        🗑 Delete
                       </button>
                     </div>
                   </div>
                 );
-              })}
-            </motion.div>
-          )}
+              })
+            )}
+          </div>
+        )}
 
-          {/* ADD PAYMENT */}
-          {page === "add" && (
-            <motion.div 
-              key="add"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              className="space-y-6"
-            >
-              <h2 className="text-xl font-bold">Record Payment</h2>
+        {/* MY CARDS */}
+        {page === "cards" && (
+          <div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <div style={{ fontSize: 22, fontWeight: "bold", color: "#2c3e50" }}>My Cards</div>
+              <button onClick={() => setShowAddCard(!showAddCard)}
+                style={{ background: "#2c5f8a", color: "white", border: "none", borderRadius: 10, padding: "10px 18px", fontSize: 16, cursor: "pointer", fontWeight: "bold" }}>
+                + Add Card
+              </button>
+            </div>
 
-              <div className="glass-card p-6 space-y-6">
-                {dupWarning && (
-                  <div className="bg-warning/10 border border-warning/20 p-4 rounded-xl flex gap-3 text-warning text-sm">
-                    <AlertCircle size={18} className="shrink-0" />
-                    <p><strong>Heads up!</strong> This card is already fully paid. Double-check before proceeding.</p>
-                  </div>
-                )}
-
-                <div className="space-y-2">
-                  <label className="text-sm font-bold text-text-muted">Select Card</label>
-                  <select 
-                    value={form.cardId} 
-                    onChange={e => handleFormChange("cardId", e.target.value)}
-                    className="w-full"
-                  >
-                    <option value="">Choose a card</option>
-                    {cards.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                  </select>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-bold text-text-muted">Amount Paid</label>
-                  <div className="relative">
-                    <IndianRupee className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" size={18} />
-                    <input 
-                      type="number" 
-                      value={form.amount} 
-                      onChange={e => handleFormChange("amount", e.target.value)}
-                      placeholder="0.00"
-                      className="w-full pl-12 text-xl font-bold"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-bold text-text-muted">Payment App</label>
-                  <div className="flex flex-wrap gap-2">
-                    {PAYMENT_APPS.map(app => (
-                      <button 
-                        key={app} 
-                        onClick={() => handleFormChange("app", app)}
-                        className={`px-4 py-2 rounded-full text-sm font-semibold border transition-all ${
-                          form.app === app ? 'bg-primary border-primary text-white shadow-lg shadow-primary/20' : 'bg-white/5 border-white/10 text-text-muted hover:border-white/20'
-                        }`}
-                      >
-                        {app}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-bold text-text-muted">Date</label>
-                    <input 
-                      type="date" 
-                      value={form.date} 
-                      onChange={e => handleFormChange("date", e.target.value)}
-                      className="w-full"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-bold text-text-muted">Notes (Optional)</label>
-                    <input 
-                      type="text" 
-                      value={form.notes} 
-                      onChange={e => handleFormChange("notes", e.target.value)}
-                      placeholder="Full payment, etc."
-                      className="w-full"
-                    />
-                  </div>
-                </div>
-
-                {formError && (
-                  <div className="text-danger text-sm font-bold flex items-center gap-2">
-                    <AlertCircle size={16} />
-                    {formError}
-                  </div>
-                )}
-
-                <div className="flex flex-col gap-3 pt-4">
-                  <button onClick={handleAddPayment} className="btn-primary flex items-center justify-center gap-2">
-                    <CheckCircle2 size={20} />
-                    Save Payment
-                  </button>
-                  <button 
-                    onClick={() => setPage("dashboard")}
-                    className="p-3 text-text-muted font-bold hover:text-text transition-colors"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          )}
-
-          {/* HISTORY */}
-          {page === "history" && (
-            <motion.div 
-              key="history"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              className="space-y-4"
-            >
-              <h2 className="text-xl font-bold mb-4">Payment History</h2>
-              {payments.length === 0 ? (
-                <div className="glass-card p-12 text-center text-text-muted">
-                  <History size={48} className="mx-auto mb-4 opacity-20" />
-                  <p>No transactions found.</p>
-                </div>
-              ) : (
-                [...payments].sort((a,b) => b.date.localeCompare(a.date)).map(p => {
-                  const card = cards.find(c => c.id === p.cardId);
-                  return (
-                    <motion.div 
-                      layout
-                      key={p.id} 
-                      className="glass-card p-5 flex justify-between items-center group"
-                    >
-                      <div className="flex gap-4 items-center">
-                        <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
-                          <IndianRupee size={24} />
-                        </div>
-                        <div>
-                          <p className="font-bold">{card?.name || "Deleted Card"}</p>
-                          <div className="flex items-center gap-2 text-xs text-text-muted mt-1">
-                            <Calendar size={12} />
-                            <span>{formatDate(p.date)}</span>
-                            <span className="opacity-30">•</span>
-                            <Smartphone size={12} />
-                            <span>{p.app}</span>
-                          </div>
-                          {p.notes && <p className="text-xs text-text-muted mt-1 italic opacity-60">"{p.notes}"</p>}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <p className="text-lg font-bold text-success">{formatINR(p.amount)}</p>
-                        <button 
-                          onClick={() => handleDeletePayment(p.id)}
-                          className="p-2 text-text-muted hover:text-danger hover:bg-danger/10 rounded-lg transition-all opacity-0 group-hover:opacity-100"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      </div>
-                    </motion.div>
-                  );
-                })
-              )}
-            </motion.div>
-          )}
-
-          {/* MY CARDS */}
-          {page === "cards" && (
-            <motion.div 
-              key="cards"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              className="space-y-4"
-            >
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold">Manage Cards</h2>
-                <button 
-                  onClick={() => setShowAddCard(!showAddCard)}
-                  className="p-2 bg-primary/10 text-primary rounded-xl flex items-center gap-2 font-bold text-sm hover:bg-primary/20 transition-all"
-                >
-                  <PlusCircle size={18} />
-                  New Card
+            {showAddCard && (
+              <div style={{ background: "white", borderRadius: 14, padding: 18, marginBottom: 20, boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }}>
+                <div style={{ fontWeight: "bold", fontSize: 17, marginBottom: 12 }}>Add New Card</div>
+                <input placeholder="Card Name (e.g. SBI Credit Card)" value={addCardForm.name} onChange={e => setAddCardForm(f=>({...f, name: e.target.value}))}
+                  style={{ width: "100%", padding: 12, fontSize: 16, borderRadius: 8, border: "2px solid #ccc", marginBottom: 10, boxSizing: "border-box" }} />
+                <input placeholder="Bank Name (e.g. SBI)" value={addCardForm.bank} onChange={e => setAddCardForm(f=>({...f, bank: e.target.value}))}
+                  style={{ width: "100%", padding: 12, fontSize: 16, borderRadius: 8, border: "2px solid #ccc", marginBottom: 10, boxSizing: "border-box" }} />
+                <input type="number" placeholder="Total Bill Amount (₹)" value={addCardForm.totalBill} onChange={e => setAddCardForm(f=>({...f, totalBill: e.target.value}))}
+                  style={{ width: "100%", padding: 12, fontSize: 16, borderRadius: 8, border: "2px solid #ccc", marginBottom: 10, boxSizing: "border-box" }} />
+                <label style={{ fontSize: 14, color: "#666" }}>Due Date</label>
+                <input type="date" value={addCardForm.dueDate} onChange={e => setAddCardForm(f=>({...f, dueDate: e.target.value}))}
+                  style={{ width: "100%", padding: 12, fontSize: 16, borderRadius: 8, border: "2px solid #ccc", marginBottom: 14, boxSizing: "border-box" }} />
+                <button onClick={handleAddCard}
+                  style={{ width: "100%", padding: 14, background: "#27ae60", color: "white", border: "none", borderRadius: 10, fontSize: 17, fontWeight: "bold", cursor: "pointer" }}>
+                  ✓ Save Card
                 </button>
               </div>
-
-              <AnimatePresence>
-                {showAddCard && (
-                  <motion.div 
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    className="glass-card p-6 border-primary/20 mb-6"
-                  >
-                    <h3 className="font-bold mb-4">Add New Card</h3>
-                    <div className="space-y-4">
-                      <input 
-                        placeholder="Card Name (e.g. HDFC Swiggy)" 
-                        value={addCardForm.name} 
-                        onChange={e => setAddCardForm(f=>({...f, name: e.target.value}))}
-                        className="w-full"
-                      />
-                      <div className="grid grid-cols-2 gap-4">
-                        <input 
-                          placeholder="Bank Name" 
-                          value={addCardForm.bank} 
-                          onChange={e => setAddCardForm(f=>({...f, bank: e.target.value}))}
-                          className="w-full"
-                        />
-                        <input 
-                          type="number" 
-                          placeholder="Total Bill Amount" 
-                          value={addCardForm.totalBill} 
-                          onChange={e => setAddCardForm(f=>({...f, totalBill: e.target.value}))}
-                          className="w-full"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-xs font-bold text-text-muted ml-1">Due Date</label>
-                        <input 
-                          type="date" 
-                          value={addCardForm.dueDate} 
-                          onChange={e => setAddCardForm(f=>({...f, dueDate: e.target.value}))}
-                          className="w-full"
-                        />
-                      </div>
-                      <div className="flex gap-2 pt-2">
-                        <button 
-                          onClick={handleAddCard}
-                          className="btn-primary flex-1"
-                        >
-                          Add Card
-                        </button>
-                        <button 
-                          onClick={() => setShowAddCard(false)}
-                          className="px-6 font-bold text-text-muted hover:text-text transition-colors"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {cards.map(card => {
-                const status = getCardStatus(card, payments);
-                const paid = getCardPaid(card, payments);
-                return (
-                  <div key={card.id} className="glass-card p-5 group">
-                    <div className="flex justify-between items-start">
-                      <div className="flex gap-4">
-                        <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center">
-                          <CreditCard size={24} className="text-primary" />
-                        </div>
-                        <div>
-                          <p className="font-bold">{card.name}</p>
-                          <p className="text-xs text-text-muted">{card.bank} • Due {formatDate(card.dueDate)}</p>
-                          <div className="flex items-center gap-3 mt-2">
-                            <span className="text-xs font-bold">Bill: {formatINR(card.totalBill)}</span>
-                            <span className="text-xs font-bold text-success">Paid: {formatINR(paid)}</span>
-                          </div>
-                        </div>
-                      </div>
-                      <button 
-                        onClick={() => setDeleteConfirm({ type: "card", id: card.id })}
-                        className="p-2 text-text-muted hover:text-danger hover:bg-danger/10 rounded-lg transition-all opacity-0 group-hover:opacity-100"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </main>
-
-      {/* Navigation */}
-      <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-lg nav-blur rounded-3xl p-2 z-50 flex shadow-2xl">
-        {navItems.map(item => (
-          <button 
-            key={item.key} 
-            onClick={() => setPage(item.key)}
-            className={`flex-1 flex flex-col items-center gap-1 py-3 rounded-2xl transition-all relative ${
-              page === item.key ? 'text-primary' : 'text-text-muted hover:text-text'
-            }`}
-          >
-            <item.icon size={20} strokeWidth={page === item.key ? 2.5 : 2} />
-            <span className="text-[10px] font-bold uppercase tracking-widest">{item.label}</span>
-            {page === item.key && (
-              <motion.div 
-                layoutId="nav-pill"
-                className="absolute inset-0 bg-primary/10 rounded-2xl -z-10"
-              />
             )}
+
+            {cards.map(card => {
+              const status = getCardStatus(card, payments);
+              const paid = getCardPaid(card, payments);
+              const s = STATUS_STYLES[status];
+              return (
+                <div key={card.id} style={{ background: "white", borderRadius: 14, padding: 16, marginBottom: 14, boxShadow: "0 2px 6px rgba(0,0,0,0.06)", border: `2px solid ${s.border}` }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                    <div>
+                      <div style={{ fontSize: 18, fontWeight: "bold", color: "#1a2a3a" }}>💳 {card.name}</div>
+                      <div style={{ fontSize: 14, color: "#777", marginTop: 3 }}>{card.bank} · Due: {formatDate(card.dueDate)}</div>
+                      <div style={{ marginTop: 8, fontSize: 15 }}>
+                        <span style={{ color: "#555" }}>Bill: </span><strong>{formatINR(card.totalBill)}</strong>
+                        <span style={{ margin: "0 8px", color: "#ccc" }}>|</span>
+                        <span style={{ color: "#27ae60" }}>Paid: </span><strong style={{ color: "#27ae60" }}>{formatINR(paid)}</strong>
+                      </div>
+                      <div style={{ marginTop: 6, display: "inline-block", background: s.bg, color: s.text, border: `1px solid ${s.border}`, borderRadius: 16, padding: "4px 12px", fontSize: 14, fontWeight: "bold" }}>
+                        {s.label}
+                      </div>
+                    </div>
+                    <button onClick={() => setDeleteConfirm({ type: "card", id: card.id })}
+                      style={{ background: "#fff0f0", border: "1px solid #ffcdd2", color: "#e53935", borderRadius: 8, padding: "6px 14px", fontSize: 14, cursor: "pointer" }}>
+                      🗑 Remove
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Bottom Nav */}
+      <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "white", borderTop: "2px solid #ddd", display: "flex", zIndex: 100 }}>
+        {navItems.map(item => (
+          <button key={item.key} onClick={() => setPage(item.key)}
+            style={{ flex: 1, padding: "12px 4px", border: "none", background: page === item.key ? "#e8f0f8" : "white",
+              color: page === item.key ? "#2c5f8a" : "#777", fontSize: 13, fontWeight: page === item.key ? "bold" : "normal",
+              cursor: "pointer", borderTop: page === item.key ? "3px solid #2c5f8a" : "3px solid transparent" }}>
+            {item.label}
           </button>
         ))}
-      </nav>
+      </div>
 
-      {/* Modals */}
-      <AnimatePresence>
-        {deleteConfirm && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-bg/80 backdrop-blur-sm z-[100] flex items-center justify-center p-6"
-          >
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="glass-card max-w-sm w-full p-8 text-center"
-            >
-              <div className="w-16 h-16 bg-danger/10 text-danger rounded-3xl flex items-center justify-center mx-auto mb-6">
-                <Trash2 size={32} />
-              </div>
-              <h3 className="text-xl font-bold mb-2">Are you sure?</h3>
-              <p className="text-text-muted text-sm mb-8">
-                {deleteConfirm.type === "payment" 
-                  ? "This transaction record will be permanently removed." 
-                  : "This card and all associated history will be deleted."}
-              </p>
-              <div className="flex flex-col gap-3">
-                <button 
-                  onClick={confirmDelete}
-                  className="p-4 bg-danger text-white rounded-2xl font-bold hover:bg-danger/90 transition-all"
-                >
-                  Confirm Delete
-                </button>
-                <button 
-                  onClick={() => setDeleteConfirm(null)}
-                  className="p-4 text-text-muted font-bold hover:text-text transition-all"
-                >
-                  Cancel
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Delete Confirm Modal */}
+      {deleteConfirm && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200, padding: 20 }}>
+          <div style={{ background: "white", borderRadius: 18, padding: 28, maxWidth: 380, width: "100%", textAlign: "center" }}>
+            <div style={{ fontSize: 40, marginBottom: 12 }}>⚠️</div>
+            <div style={{ fontSize: 20, fontWeight: "bold", color: "#2c3e50", marginBottom: 10 }}>Are you sure?</div>
+            <div style={{ fontSize: 16, color: "#666", marginBottom: 24 }}>
+              {deleteConfirm.type === "payment" ? "This payment record will be permanently deleted." : "This card and all its payment records will be removed."}
+            </div>
+            <button onClick={confirmDelete}
+              style={{ width: "100%", padding: 14, background: "#e53935", color: "white", border: "none", borderRadius: 12, fontSize: 18, fontWeight: "bold", cursor: "pointer", marginBottom: 10 }}>
+              Yes, Delete
+            </button>
+            <button onClick={() => setDeleteConfirm(null)}
+              style={{ width: "100%", padding: 14, background: "#f5f0e8", color: "#555", border: "2px solid #ccc", borderRadius: 12, fontSize: 16, cursor: "pointer" }}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Toast */}
-      <AnimatePresence>
-        {toast && (
-          <motion.div 
-            initial={{ y: 100, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 100, opacity: 0 }}
-            className="fixed bottom-28 left-1/2 -translate-x-1/2 z-[200]"
-          >
-            <div className="bg-success text-white px-6 py-3 rounded-full font-bold shadow-xl flex items-center gap-3">
-              <CheckCircle2 size={18} />
-              {toast}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {toast && (
+        <div style={{ position: "fixed", bottom: 80, left: "50%", transform: "translateX(-50%)", background: "#27ae60", color: "white", padding: "14px 28px", borderRadius: 30, fontSize: 16, fontWeight: "bold", zIndex: 300, boxShadow: "0 4px 16px rgba(0,0,0,0.2)" }}>
+          ✓ {toast}
+        </div>
+      )}
     </div>
   );
 }
